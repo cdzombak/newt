@@ -3,6 +3,6 @@
 --description "Git worktree manager"
 --url "https://github.com/cdzombak/newt"
 --maintainer "Chris Dzombak <https://www.dzombak.com>"
---license LGPL3
+--license MIT
 --depends git
 --architecture all
