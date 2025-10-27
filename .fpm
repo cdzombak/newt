@@ -1,0 +1,8 @@
+-s dir
+--name newt
+--description "Git worktree manager"
+--url "https://github.com/cdzombak/newt"
+--maintainer "Chris Dzombak <https://www.dzombak.com>"
+--license LGPL3
+--depends git
+--architecture all
