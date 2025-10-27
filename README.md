@@ -2,13 +2,13 @@
 
 # newt
 
-Manage Git worktrees with ease. `newt` is a simple wrapper around Git worktrees that automatically organizes them in a `.newt/` directory, provides merge status tracking, and handles cleanup.
+Manage Git worktrees with ease. `newt` is a simple wrapper around Git worktrees that automatically organizes them in a `.newt/` directory, provides merge status tracking, and handles deletion.
 
 ## Usage
 
 ```text
 newt [-b] <branch>
-newt -c
+newt -d <worktree>
 newt -l
 ```
 
@@ -16,7 +16,7 @@ newt -l
 
 - `<branch>`: Create a worktree for the specified branch in `.newt/<branch>`. Slashes in branch names are converted to hyphens in the directory name.
 - `-b`: Create a new branch and worktree together.
-- `-c`: Clean up stale worktrees whose branches no longer exist.
+- `-d <worktree>`: Delete the specified worktree and its branch. Asks for confirmation if the branch has not been merged.
 - `-l`: List all worktrees with their merge status (merged/unmerged relative to the default branch).
 - `-h`, `--help`: Print help and exit.
 - `-v`, `--version`: Print version and exit.
@@ -44,11 +44,12 @@ newt -l
 # Shows worktrees with their branches and merge status
 ```
 
-Clean up stale worktrees:
+Delete a worktree and its branch:
 
 ```shell
-newt -c
-# Removes worktrees for branches that no longer exist
+newt -d feature-new-api
+# Removes the worktree and deletes the branch
+# Asks for confirmation if the branch hasn't been merged
 ```
 
 ## Installation

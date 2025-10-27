@@ -6,19 +6,19 @@ VERSION="<dev>"
 usage() {
   cat <<'EOF'
 Usage: newt [-b] <branch>
-       newt -c
+       newt -d <worktree>
        newt -l
 
 Create a git worktree rooted in <repo>/.newt/<branch>, with slashes in the
 branch name replaced by hyphens. Use -b to create the worktree on a new branch.
-Use -c to remove worktrees whose branches no longer exist.
+Use -d to delete a worktree and its branch (asks for confirmation if not merged).
 Use -l to list worktrees with their merge status.
 EOF
   exit 1
 }
 
 create_branch=false
-do_cleanup=false
+do_delete=false
 do_list=false
 
 while [[ $# -gt 0 ]]; do
@@ -27,8 +27,8 @@ while [[ $# -gt 0 ]]; do
       create_branch=true
       shift
       ;;
-    -c)
-      do_cleanup=true
+    -d)
+      do_delete=true
       shift
       ;;
     -l)
@@ -56,10 +56,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if ( $do_cleanup && $create_branch ) || \
+if ( $do_delete && $create_branch ) || \
    ( $do_list && $create_branch ) || \
-   ( $do_list && $do_cleanup ); then
-  echo "Error: -b, -c, and -l cannot be combined." >&2
+   ( $do_list && $do_delete ); then
+  echo "Error: -b, -d, and -l cannot be combined." >&2
   usage
 fi
 
@@ -88,14 +88,17 @@ ensure_newt_excluded() {
 
 ensure_newt_excluded
 
-cleanup_stale_worktrees() {
+delete_worktree() {
+  local worktree_name="$1"
   local worktree_base="${repo_root}/.newt"
+  local worktree_path="${worktree_base}/${worktree_name}"
 
-  if [[ ! -d "$worktree_base" ]]; then
-    echo "No worktrees to clean."
-    return
+  if [[ ! -d "$worktree_path" ]]; then
+    echo "Error: worktree '${worktree_name}' not found." >&2
+    exit 1
   fi
 
+  # Get the branch for this worktree
   declare -A branch_for_path=()
   local current_path=""
   local line=""
@@ -110,34 +113,68 @@ cleanup_stale_worktrees() {
     esac
   done < <(git -C "$repo_root" worktree list --porcelain)
 
-  shopt -s nullglob
-  local cleaned=0
-  local path=""
-  for path in "${worktree_base}"/*; do
-    [[ -d "$path" ]] || continue
-    local branch="${branch_for_path["$path"]-}"
-    if [[ -z "$branch" ]] || [[ "$branch" == "("* ]]; then
-      continue
-    fi
-
-    if git -C "$repo_root" rev-parse --verify --quiet "${branch}^{commit}" >/dev/null 2>&1; then
-      continue
-    fi
-
-    if git -C "$repo_root" worktree remove --force "$path" >/dev/null 2>&1; then
-      echo "Removed stale worktree at $path (branch: $branch)"
-      cleaned=$((cleaned + 1))
-    else
-      echo "Warning: failed to remove worktree at $path" >&2
-    fi
-  done
-  shopt -u nullglob
-
-  if [[ $cleaned -eq 0 ]]; then
-    echo "No stale worktrees found."
-  else
-    echo "Removed $cleaned stale worktree(s)."
+  local branch="${branch_for_path["$worktree_path"]-}"
+  if [[ -z "$branch" ]]; then
+    echo "Error: could not determine branch for worktree '${worktree_name}'." >&2
+    exit 1
   fi
+
+  # Handle refs/heads/ prefix if present
+  branch="${branch#refs/heads/}"
+
+  # Auto-detect default branch
+  local default_branch=""
+  if default_branch=$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null); then
+    default_branch="${default_branch#origin/}"
+  else
+    # Fallback to checking common branch names
+    for branch_candidate in main master develop; do
+      if git -C "$repo_root" rev-parse --verify --quiet "$branch_candidate" >/dev/null 2>&1; then
+        default_branch="$branch_candidate"
+        break
+      fi
+    done
+  fi
+
+  if [[ -z "$default_branch" ]]; then
+    echo "Error: could not detect default branch (tried main, master, develop)." >&2
+    exit 1
+  fi
+
+  # Check if branch is merged
+  local is_merged=false
+  if git -C "$repo_root" merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null; then
+    is_merged=true
+  fi
+
+  # Ask for confirmation if not merged
+  if ! $is_merged; then
+    echo "Warning: branch '${branch}' has not been merged into '${default_branch}'." >&2
+    read -r -p "Are you sure you want to delete this worktree and branch? [y/N] " response
+    case "$response" in
+      [yY][eE][sS]|[yY])
+        # Continue with deletion
+        ;;
+      *)
+        echo "Deletion cancelled."
+        exit 0
+        ;;
+    esac
+  fi
+
+  # Remove the worktree
+  if ! git -C "$repo_root" worktree remove "$worktree_path"; then
+    echo "Error: failed to remove worktree at ${worktree_path}." >&2
+    exit 1
+  fi
+  echo "Removed worktree at ${worktree_path}"
+
+  # Delete the branch
+  if ! git -C "$repo_root" branch -D "$branch" >/dev/null 2>&1; then
+    echo "Warning: failed to delete branch '${branch}'." >&2
+    exit 1
+  fi
+  echo "Deleted branch '${branch}'"
 }
 
 list_worktrees() {
@@ -227,11 +264,12 @@ list_worktrees() {
   fi
 }
 
-if $do_cleanup; then
-  if [[ $# -ne 0 ]]; then
+if $do_delete; then
+  if [[ $# -ne 1 ]]; then
+    echo "Error: -d requires exactly one argument (worktree name)." >&2
     usage
   fi
-  cleanup_stale_worktrees
+  delete_worktree "$1"
   exit 0
 fi
 
