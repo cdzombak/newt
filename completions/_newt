@@ -1,7 +1,5 @@
-#!/usr/bin/env zsh
 #compdef newt
 # shellcheck disable=all
-# This is a zsh completion script with zsh-specific syntax
 
 _newt() {
     local -a opts branches worktrees
