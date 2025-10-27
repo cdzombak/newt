@@ -17,14 +17,14 @@ _newt_completions() {
         if [[ -d "$worktree_base" ]]; then
             local worktrees
             worktrees=$(cd "$worktree_base" && compgen -d -- "$cur")
-            COMPREPLY=( $(compgen -W "$worktrees" -- "$cur") )
+            mapfile -t COMPREPLY < <(compgen -W "$worktrees" -- "$cur")
         fi
         return 0
     fi
 
     # If current word starts with -, complete with options
     if [[ "$cur" == -* ]]; then
-        COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+        mapfile -t COMPREPLY < <(compgen -W "$opts" -- "$cur")
         return 0
     fi
 
@@ -41,12 +41,12 @@ _newt_completions() {
     if ! $has_flag; then
         local branches
         branches=$(git -C "$repo_root" for-each-ref --format='%(refname:short)' refs/heads/ 2>/dev/null)
-        COMPREPLY=( $(compgen -W "$opts $branches" -- "$cur") )
+        mapfile -t COMPREPLY < <(compgen -W "$opts $branches" -- "$cur")
         return 0
     fi
 
     # If -b was used, complete with branch names (for new branch creation)
-    if [[ "${COMP_WORDS[@]}" =~ -b ]]; then
+    if [[ "${COMP_WORDS[*]}" =~ -b ]]; then
         # Don't complete anything for new branch names
         return 0
     fi
