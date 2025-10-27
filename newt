@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+VERSION="<dev>"
+
 usage() {
   cat <<'EOF'
 Usage: newt [-b] <branch>
@@ -32,6 +34,10 @@ while [[ $# -gt 0 ]]; do
     -l)
       do_list=true
       shift
+      ;;
+    -v|--version)
+      echo "newt ${VERSION}"
+      exit 0
       ;;
     -h|--help)
       usage
