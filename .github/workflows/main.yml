@@ -263,7 +263,7 @@ jobs:
 
   ntfy:
     name: Ntfy
-    if: ${{ !cancelled() }}
+    if: (needs.meta.outputs.is_release == 'true' || needs.meta.outputs.is_prerelease == 'true') && !cancelled()
     runs-on: ubuntu-latest
     needs: [meta, actionlint, shellcheck, binaries, release, tags, aptly, homebrew]
     steps:
