@@ -93,6 +93,51 @@ make build
 cp out/newt-[VERSION]-all $INSTALL_DIR/newt
 ```
 
+### Shell Completions
+
+Shell completion scripts are available in the `completions/` directory.
+
+#### Bash
+
+Add to your `~/.bashrc` or `~/.bash_profile`:
+
+```shell
+source /path/to/newt/completions/newt.bash
+```
+
+Or copy the completion script to your system's bash completions directory:
+
+```shell
+# macOS (Homebrew)
+cp completions/newt.bash $(brew --prefix)/etc/bash_completion.d/newt
+
+# Linux
+sudo cp completions/newt.bash /etc/bash_completion.d/newt
+```
+
+#### Zsh
+
+Copy the completion script to a directory in your `$fpath`:
+
+```shell
+# Example: using ~/.zsh/completions
+mkdir -p ~/.zsh/completions
+cp completions/_newt ~/.zsh/completions/
+```
+
+Then add to your `~/.zshrc` (before `compinit`):
+
+```shell
+fpath=(~/.zsh/completions $fpath)
+autoload -Uz compinit && compinit
+```
+
+Or for Homebrew users:
+
+```shell
+cp completions/_newt $(brew --prefix)/share/zsh/site-functions/_newt
+```
+
 ## About
 
 - Issues: [github.com/cdzombak/newt/issues](https://github.com/cdzombak/newt/issues)

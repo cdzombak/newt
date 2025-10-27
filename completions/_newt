@@ -1,0 +1,68 @@
+#compdef newt
+
+_newt() {
+    local -a opts branches worktrees
+    local repo_root worktree_base
+
+    # Get repo root
+    repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
+
+    opts=(
+        '-b[Create a new branch and worktree]'
+        '-d[Delete a worktree and its branch]:worktree:_newt_worktrees'
+        '-l[List worktrees with merge status]'
+        '-h[Show help]'
+        '--help[Show help]'
+        '-v[Show version]'
+        '--version[Show version]'
+    )
+
+    _arguments -C \
+        '1: :->first_arg' \
+        '*::arg:->args' && return 0
+
+    case $state in
+        first_arg)
+            # If -d is being used, complete worktrees
+            if [[ $words[2] == "-d" ]]; then
+                _newt_worktrees
+                return 0
+            fi
+
+            # Otherwise offer both flags and branches
+            branches=(${(f)"$(git -C "$repo_root" for-each-ref --format='%(refname:short)' refs/heads/ 2>/dev/null)"})
+            _describe 'option' opts
+            _describe 'branch' branches
+            ;;
+        args)
+            # After -d, complete with worktrees
+            if [[ $words[2] == "-d" ]]; then
+                _newt_worktrees
+                return 0
+            fi
+
+            # After -b, don't complete (new branch name)
+            if [[ $words[2] == "-b" ]]; then
+                return 0
+            fi
+
+            # Otherwise complete with branches
+            branches=(${(f)"$(git -C "$repo_root" for-each-ref --format='%(refname:short)' refs/heads/ 2>/dev/null)"})
+            _describe 'branch' branches
+            ;;
+    esac
+}
+
+_newt_worktrees() {
+    local repo_root worktree_base
+    repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
+    worktree_base="${repo_root}/.newt"
+
+    if [[ -d "$worktree_base" ]]; then
+        local -a worktrees
+        worktrees=(${(f)"$(cd "$worktree_base" && ls -1d */ 2>/dev/null | sed 's|/||')"})
+        _describe 'worktree' worktrees
+    fi
+}
+
+_newt "$@"
