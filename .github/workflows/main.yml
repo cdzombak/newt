@@ -82,7 +82,6 @@ jobs:
 
   shellcheck:
     name: Shellcheck
-    needs: [meta]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
