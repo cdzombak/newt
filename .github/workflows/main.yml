@@ -77,7 +77,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Run actionlint
-        uses: rlalik/actionlint-action@v1
+        uses: raven-actions/actionlint@v1
         continue-on-error: true
 
   shellcheck:
