@@ -2,56 +2,35 @@
 # shellcheck disable=all
 
 _newt() {
-    local -a opts branches worktrees
-    local repo_root worktree_base
-
-    # Get repo root
-    repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
-
-    opts=(
-        '-b[Create a new branch and worktree]'
-        '-d[Delete a worktree and its branch]:worktree:_newt_worktrees'
-        '-l[List worktrees with merge status]'
-        '-h[Show help]'
-        '--help[Show help]'
-        '-v[Show version]'
-        '--version[Show version]'
-    )
+    local curcontext="$curcontext" state line ret=1
+    local -a branches worktrees
 
     _arguments -C \
-        '1: :->first_arg' \
-        '*::arg:->args' && return 0
+        '(-b -d -l -h --help -v --version)'{-h,--help}'[Show help]' \
+        '(-b -d -l -h --help -v --version)'{-v,--version}'[Show version]' \
+        '(-b -d -l -h --help -v --version)-l[List worktrees with merge status]' \
+        '(-b -d -l -h --help -v --version)-b[Create a new branch and worktree]: :->branch_name' \
+        '(-b -d -l -h --help -v --version)-d[Delete a worktree and its branch]: :->worktree' \
+        '(-b -d -l -h --help -v --version)1: :->branch' \
+        && ret=0
 
     case $state in
-        first_arg)
-            # If -d is being used, complete worktrees
-            if [[ $words[2] == "-d" ]]; then
-                _newt_worktrees
-                return 0
-            fi
-
-            # Otherwise offer both flags and branches
+        branch)
+            local repo_root
+            repo_root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
             branches=(${(f)"$(git -C "$repo_root" for-each-ref --format='%(refname:short)' refs/heads/ 2>/dev/null)"})
-            _describe 'option' opts
-            _describe 'branch' branches
+            _describe -t branches 'branch' branches && ret=0
             ;;
-        args)
-            # After -d, complete with worktrees
-            if [[ $words[2] == "-d" ]]; then
-                _newt_worktrees
-                return 0
-            fi
-
-            # After -b, don't complete (new branch name)
-            if [[ $words[2] == "-b" ]]; then
-                return 0
-            fi
-
-            # Otherwise complete with branches
-            branches=(${(f)"$(git -C "$repo_root" for-each-ref --format='%(refname:short)' refs/heads/ 2>/dev/null)"})
-            _describe 'branch' branches
+        branch_name)
+            # No completion for new branch names
+            _message 'new branch name' && ret=0
+            ;;
+        worktree)
+            _newt_worktrees && ret=0
             ;;
     esac
+
+    return ret
 }
 
 _newt_worktrees() {
