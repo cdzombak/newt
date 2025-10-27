@@ -24,6 +24,8 @@ class Newt < Formula
 
   def install
     bin.install "newt"
+    bash_completion.install "completions/newt.bash" => "newt"
+    zsh_completion.install "completions/_newt" => "_newt"
   end
 
   test do

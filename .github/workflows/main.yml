@@ -122,8 +122,12 @@ jobs:
         run: |
           mkdir ./gh-release
           cp ./*.deb ./gh-release/
-          find . -name '${{ needs.meta.outputs.bin_name }}-*' -executable -type f -maxdepth 1 -print0 | \
-            xargs -0 -I {} tar --transform='flags=r;s|.*|${{ needs.meta.outputs.bin_name }}|' -czvf ./gh-release/{}.tar.gz {}
+          for dir in *-*.release; do
+            if [ -d "$dir" ]; then
+              base=$(basename "$dir" .release)
+              tar -czf "./gh-release/${base}.tar.gz" -C "$dir" .
+            fi
+          done
           echo "tgz_sha256_allarch=$(shasum -a 256 ./gh-release/${{ needs.meta.outputs.bin_name }}-${{ needs.meta.outputs.bin_version }}-all.tar.gz  | cut -d " " -f 1)" >> "$GITHUB_OUTPUT"
 
       - name: Upload binaries & packages

@@ -17,12 +17,18 @@ clean: ## Remove build products (./out)
 
 .PHONY: build
 build: ## Build for all supported platforms & architectures to ./out
-	mkdir -p out
-	cp ./newt ./out/${BIN_NAME}-${BIN_VERSION}-all
-	chmod 0555 ./out/${BIN_NAME}-${BIN_VERSION}-all
-	sed -i.bak 's/VERSION="<dev>"/VERSION="${BIN_VERSION}"/g' ./out/${BIN_NAME}-${BIN_VERSION}-all
-	rm -f ./out/${BIN_NAME}-${BIN_VERSION}-all.bak
+	mkdir -p out/${BIN_NAME}-${BIN_VERSION}-all.release/completions
+	cp ./newt ./out/${BIN_NAME}-${BIN_VERSION}-all.release/${BIN_NAME}
+	chmod 0555 ./out/${BIN_NAME}-${BIN_VERSION}-all.release/${BIN_NAME}
+	sed -i.bak 's/VERSION="<dev>"/VERSION="${BIN_VERSION}"/g' ./out/${BIN_NAME}-${BIN_VERSION}-all.release/${BIN_NAME}
+	rm -f ./out/${BIN_NAME}-${BIN_VERSION}-all.release/${BIN_NAME}.bak
+	cp ./completions/${BIN_NAME}.bash ./out/${BIN_NAME}-${BIN_VERSION}-all.release/completions/
+	cp ./completions/_${BIN_NAME} ./out/${BIN_NAME}-${BIN_VERSION}-all.release/completions/
+	cp ./out/${BIN_NAME}-${BIN_VERSION}-all.release/${BIN_NAME} ./out/${BIN_NAME}-${BIN_VERSION}-all
 
 .PHONY: package
 package: all ## Build binary + .deb package to ./out (requires fpm: https://fpm.readthedocs.io)
-	fpm -t deb -v ${BIN_VERSION} -p ./out/${BIN_NAME}-${BIN_VERSION}-all.deb ./out/${BIN_NAME}-${BIN_VERSION}-all=/usr/bin/${BIN_NAME}
+	fpm -t deb -v ${BIN_VERSION} -p ./out/${BIN_NAME}-${BIN_VERSION}-all.deb \
+		./out/${BIN_NAME}-${BIN_VERSION}-all=/usr/bin/${BIN_NAME} \
+		./completions/${BIN_NAME}.bash=/usr/share/bash-completion/completions/${BIN_NAME} \
+		./completions/_${BIN_NAME}=/usr/share/zsh/vendor-completions/_${BIN_NAME}
