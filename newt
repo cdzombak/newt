@@ -5,16 +5,19 @@ usage() {
   cat <<'EOF'
 Usage: newt [-b] <branch>
        newt -c
+       newt -l
 
 Create a git worktree rooted in <repo>/.newt/<branch>, with slashes in the
 branch name replaced by hyphens. Use -b to create the worktree on a new branch.
 Use -c to remove worktrees whose branches no longer exist.
+Use -l to list worktrees with their merge status.
 EOF
   exit 1
 }
 
 create_branch=false
 do_cleanup=false
+do_list=false
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -24,6 +27,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     -c)
       do_cleanup=true
+      shift
+      ;;
+    -l)
+      do_list=true
       shift
       ;;
     -h|--help)
@@ -43,8 +50,10 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if $do_cleanup && $create_branch; then
-  echo "Error: -b and -c cannot be combined." >&2
+if ( $do_cleanup && $create_branch ) || \
+   ( $do_list && $create_branch ) || \
+   ( $do_list && $do_cleanup ); then
+  echo "Error: -b, -c, and -l cannot be combined." >&2
   usage
 fi
 
@@ -125,11 +134,106 @@ cleanup_stale_worktrees() {
   fi
 }
 
+list_worktrees() {
+  local worktree_base="${repo_root}/.newt"
+
+  if [[ ! -d "$worktree_base" ]]; then
+    echo "No worktrees found."
+    return
+  fi
+
+  # Auto-detect default branch
+  local default_branch=""
+  if default_branch=$(git -C "$repo_root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null); then
+    default_branch="${default_branch#origin/}"
+  else
+    # Fallback to checking common branch names
+    for branch in main master develop; do
+      if git -C "$repo_root" rev-parse --verify --quiet "$branch" >/dev/null 2>&1; then
+        default_branch="$branch"
+        break
+      fi
+    done
+  fi
+
+  if [[ -z "$default_branch" ]]; then
+    echo "Error: could not detect default branch (tried main, master, develop)." >&2
+    return 1
+  fi
+
+  # Parse worktree list
+  declare -A branch_for_path=()
+  local current_path=""
+  local line=""
+  while IFS= read -r line; do
+    case "$line" in
+      worktree\ *)
+        current_path="${line#worktree }"
+        ;;
+      branch\ *)
+        branch_for_path["$current_path"]="${line#branch }"
+        ;;
+    esac
+  done < <(git -C "$repo_root" worktree list --porcelain)
+
+  # List worktrees in .newt directory
+  shopt -s nullglob
+  local found=0
+  local path=""
+  for path in "${worktree_base}"/*; do
+    [[ -d "$path" ]] || continue
+    local branch="${branch_for_path["$path"]-}"
+
+    # Skip if no branch info or detached HEAD
+    if [[ -z "$branch" ]]; then
+      continue
+    fi
+
+    # Handle refs/heads/ prefix if present
+    branch="${branch#refs/heads/}"
+
+    # Get worktree name (basename)
+    local worktree_name
+    worktree_name="$(basename "$path")"
+
+    # Check merge status
+    local status=""
+    local status_color=""
+    if git -C "$repo_root" merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null; then
+      status="merged"
+      status_color="\033[32m"  # Green
+    else
+      status="unmerged"
+      status_color="\033[31m"  # Red
+    fi
+
+    # Output with formatting
+    # Bold worktree name, plain branch name in parens, colored status in brackets
+    printf "\033[1m%s\033[0m (%s) [%b%s\033[0m]\n" \
+      "$worktree_name" "$branch" "$status_color" "$status"
+
+    found=$((found + 1))
+  done
+  shopt -u nullglob
+
+  if [[ $found -eq 0 ]]; then
+    echo "No worktrees found in ${worktree_base}."
+  fi
+}
+
 if $do_cleanup; then
   if [[ $# -ne 0 ]]; then
     usage
   fi
   cleanup_stale_worktrees
+  exit 0
+fi
+
+if $do_list; then
+  if [[ $# -ne 0 ]]; then
+    usage
+  fi
+  list_worktrees
   exit 0
 fi
 
