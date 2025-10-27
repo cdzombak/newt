@@ -60,6 +60,8 @@ newt -d feature-new-api
 brew install cdzombak/oss/newt
 ```
 
+Shell completions for bash and zsh are installed automatically.
+
 ### Debian via apt repository
 
 Install my Debian repository if you haven't already:
@@ -79,6 +81,8 @@ Then install `newt` via `apt-get`:
 sudo apt-get install newt
 ```
 
+Shell completions for bash and zsh are installed automatically.
+
 ### Manual installation from build artifacts
 
 Pre-built binaries are downloadable from each [GitHub Release](https://github.com/cdzombak/newt/releases). Debian packages for each release are available as well.
@@ -95,9 +99,24 @@ cp out/newt-[VERSION]-all $INSTALL_DIR/newt
 
 ### Shell Completions
 
+**Note:** If you installed via Homebrew or the Debian package, shell completions are already installed and configured. The instructions below are only needed for manual installations.
+
+For Homebrew installations, completions should work immediately in new shell sessions. For Debian installations, you may need to restart your shell or source the completion files:
+
+```shell
+# Bash (Debian)
+source /usr/share/bash-completion/completions/newt
+
+# Zsh (Debian)
+# Ensure /usr/share/zsh/vendor-completions is in your $fpath
+# and run: compinit
+```
+
+#### Manual Installation
+
 Shell completion scripts are available in the `completions/` directory.
 
-#### Bash
+##### Bash
 
 Add to your `~/.bashrc` or `~/.bash_profile`:
 
@@ -115,7 +134,7 @@ cp completions/newt.bash $(brew --prefix)/etc/bash_completion.d/newt
 sudo cp completions/newt.bash /etc/bash_completion.d/newt
 ```
 
-#### Zsh
+##### Zsh
 
 Copy the completion script to a directory in your `$fpath`:
 
