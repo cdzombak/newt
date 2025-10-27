@@ -1,3 +1,5 @@
+![newt logo](newt.png)
+
 # newt
 
 Manage Git worktrees with ease. `newt` is a simple wrapper around Git worktrees that automatically organizes them in a `.newt/` directory, provides merge status tracking, and handles cleanup.
