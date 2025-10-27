@@ -68,4 +68,5 @@ _newt_worktrees() {
     fi
 }
 
-_newt "$@"
+# The completion function is called by zsh's completion system automatically
+# Do not call it here - just define it
