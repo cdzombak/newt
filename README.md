@@ -60,7 +60,23 @@ newt -d feature-new-api
 brew install cdzombak/oss/newt
 ```
 
-Shell completions for bash and zsh are installed automatically.
+Shell completions for bash and zsh are installed automatically to:
+- Bash: `$(brew --prefix)/etc/bash_completion.d/newt`
+- Zsh: `$(brew --prefix)/share/zsh/site-functions/_newt`
+
+**Note:** After installation, start a new shell session for completions to take effect. If completions still don't work:
+
+```shell
+# For bash, ensure bash-completion is installed and sourced
+brew install bash-completion@2
+
+# For zsh, rebuild completion cache
+rm -f ~/.zcompdump && compinit
+
+# Verify the completion files exist
+ls -la $(brew --prefix)/etc/bash_completion.d/newt
+ls -la $(brew --prefix)/share/zsh/site-functions/_newt
+```
 
 ### Debian via apt repository
 
